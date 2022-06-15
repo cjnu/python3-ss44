@@ -47,10 +47,9 @@ class SS44:
 
         # read 4 lines of input until we see the newline.  Decode to UTF-8, and
         # strip off the CR/NL at the end.
-        line1 = self.ser.read_until().decode('utf-8').strip()
-        line2 = self.ser.read_until().decode('utf-8').strip()
-        line3 = self.ser.read_until().decode('utf-8').strip()
-        line4 = self.ser.read_until().decode('utf-8').strip()
+        lines = []
+        for x in range(4):
+            lines.append(self.ser.read_until().decode('utf-8').strip())
 
         # Output lines look like:
         # S0L1,0,1,0,0
@@ -61,20 +60,14 @@ class SS44:
         # outputs, and then the next 4 0's and 1's represent which input is
         # connected to the output.  We'll split on the comma's, and only
         # include the 0's and 1's.
-
-        out1 = line1.split(',')[1:5]
-        out2 = line2.split(',')[1:5]
-        out3 = line3.split(',')[1:5]
-        out4 = line4.split(',')[1:5]
-
         # This is a bit tricky.  I want to have a list of booleans (True/False)
         # that corresponds to the index of the input, but lists in python start
         # at 0.  So, I create a list that has a none in the zero'th position,
         # then Trues and Falses based on inputs 1-4.
-        results[1] = [ None ] + [i == '1' for i in out1]
-        results[2] = [ None ] + [i == '1' for i in out2]
-        results[3] = [ None ] + [i == '1' for i in out3]
-        results[4] = [ None ] + [i == '1' for i in out4]
+        i = 1
+        for line in lines:
+            results[i] = [ None ] + [ j == '1' for j in line.split(',')[1:5] ]
+            i += 1
 
         return results
 
@@ -85,9 +78,10 @@ class SS44:
         command = f'*{self.u}SL'
         self._writeSerial(command)
         state = self.readState()
-        for i in [1, 2, 3, 4]:
-            for j in [1, 2, 3, 4]:
-                if state[i][j]:
+        for o in sorted(state):
+            inputs = state[o][1:]
+            for ii in inputs:
+                if ii:
                     print('1', end='')
                 else:
                     print('0', end='')
